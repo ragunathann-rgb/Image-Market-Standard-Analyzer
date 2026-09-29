@@ -729,15 +729,57 @@ Rules:
                     # SEND IMAGE TO GEMINI
                     # ====================================================
 
-                    response = gemini_client.models.generate_content(
+                    # ====================================================
+# SEND IMAGE TO GEMINI
+# ====================================================
 
-                        model="gemini-3.7-flash",
+models_to_try = [
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.5-flash-lite"
+]
 
-                        contents=[
-                            image_part,
-                            visual_prompt
-                        ]
-                    )
+response = None
+successful_model = None
+last_error = None
+
+for model_name in models_to_try:
+
+    try:
+
+        response = gemini_client.models.generate_content(
+
+            model=model_name,
+
+            contents=[
+                image_part,
+                visual_prompt
+            ]
+
+        )
+
+        successful_model = model_name
+
+        break
+
+    except Exception as model_error:
+
+        last_error = model_error
+
+        continue
+
+
+if response is None:
+
+    raise Exception(
+        f"All Gemini models were temporarily unavailable. "
+        f"Last error: {last_error}"
+    )
+
+st.info(
+    f"Analysis completed using: **{successful_model}**"
+)
 
 
                     # ====================================================
