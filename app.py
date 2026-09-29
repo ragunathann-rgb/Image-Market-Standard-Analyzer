@@ -2,6 +2,9 @@ import streamlit as st
 from PIL import Image, ImageStat, ImageFilter
 import json
 
+from google import genai
+from google.genai import types
+
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -18,8 +21,13 @@ st.set_page_config(
 # LOAD MARKET STANDARDS
 # ============================================================
 
-with open("standards.json", "r") as file:
-    standards = json.load(file)
+# ============================================================
+# GEMINI AI
+# ============================================================
+
+gemini_client = genai.Client(
+    api_key=st.secrets["GEMINI_API_KEY"]
+)
 
 
 # ============================================================
@@ -531,9 +539,99 @@ if uploaded_file:
     # ANALYSIS FOCUS
     # ========================================================
 
+     # ========================================================
+    # VISUAL AI ANALYSIS
+    # ========================================================
+
     st.divider()
 
-    st.subheader("🔎 Analysis Focus")
+    st.subheader("🤖 Visual AI Analysis")
+
+    st.write(
+        "Gemini will visually inspect the uploaded image "
+        "against the selected market standard."
+    )
+
+    if st.button("🔍 Analyze Image with AI"):
+
+        with st.spinner("Gemini is analyzing the image..."):
+
+            try:
+
+                # Read uploaded image bytes
+                image_bytes = uploaded_file.getvalue()
+
+                # Create image input for Gemini
+                image_part = types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type=uploaded_file.type
+                )
+
+                # Visual analysis instructions
+                visual_prompt = f"""
+You are an e-commerce image quality analyst.
+
+Analyze the uploaded image as a {analysis_type}
+for the {market_standard} market.
+
+Focus ONLY on what can be visually determined from
+the image.
+
+Evaluate:
+
+1. Is a product clearly visible?
+2. Is the product fully visible or cropped?
+3. Does the product appear centered?
+4. Estimate the percentage of the image occupied by
+   the main product.
+5. Describe the background.
+6. Is there visible text?
+7. Is there a visible watermark?
+8. Is there a visible logo or branding?
+9. Does the image look visually clean?
+10. Are there obvious quality problems such as blur,
+    distortion, or poor composition?
+
+Return the findings in a simple structured format.
+
+Use these exact headings:
+
+Product Detected:
+Product Fully Visible:
+Estimated Product Coverage:
+Product Position:
+Background:
+Text Detected:
+Watermark Detected:
+Logo/Branding Detected:
+Visual Quality:
+Overall Observation:
+
+Do not invent information that cannot be determined
+from the image.
+"""
+
+                # Send image to Gemini
+                response = gemini_client.models.generate_content(
+                    model="gemini-3.8-flash",
+                    contents=[
+                        image_part,
+                        visual_prompt
+                    ]
+                )
+
+                # Display result
+                st.success("✓ Visual AI analysis completed")
+
+                st.subheader("📋 AI Analysis Result")
+
+                st.markdown(response.text)
+
+            except Exception as e:
+
+                st.error(
+                    f"AI analysis failed: {str(e)}"
+                )
 
 
     if analysis_type == "Product Image":
