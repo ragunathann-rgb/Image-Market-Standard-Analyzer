@@ -6,10 +6,6 @@ from google import genai
 from google.genai import types
 
 
-# ============================================================
-# PAGE CONFIGURATION
-# ============================================================
-
 st.set_page_config(
     page_title="Image Market Standard Analyzer",
     page_icon="🖼️",
@@ -21,12 +17,8 @@ st.set_page_config(
 # LOAD MARKET STANDARDS
 # ============================================================
 
-try:
-    with open("standards.json", "r") as file:
-        standards = json.load(file)
-except Exception as e:
-    st.error(f"Unable to load standards.json: {e}")
-    st.stop()
+with open("standards.json", "r") as file:
+    standards = json.load(file)
 
 
 # ============================================================
@@ -62,7 +54,9 @@ st.subheader("⚙️ Analysis Settings")
 
 col1, col2 = st.columns(2)
 
+
 with col1:
+
     analysis_type = st.selectbox(
         "What type of image are you analyzing?",
         [
@@ -76,7 +70,9 @@ with col1:
         ]
     )
 
+
 with col2:
+
     market_standard = st.selectbox(
         "Which market standard should be used?",
         [
@@ -94,15 +90,27 @@ with col2:
 # ============================================================
 
 standard_key_map = {
+
     "General E-commerce": "general_ecommerce",
+
     "Amazon": "amazon",
+
     "Google Shopping": "google_shopping",
+
     "Shopify": "shopify",
+
     "Custom": "custom"
 }
 
+
 standard_key = standard_key_map[market_standard]
+
 selected_standard = standards[standard_key]
+
+product_rules = selected_standard.get(
+    "product_image",
+    {}
+)
 
 
 st.info(
@@ -119,38 +127,41 @@ st.divider()
 
 st.subheader("📋 Selected Market Standard")
 
-product_rules = selected_standard.get("product_image", {})
-
 col1, col2, col3 = st.columns(3)
 
 
 with col1:
 
     if "minimum_width" in product_rules:
+
         st.metric(
             "Minimum Width",
             f"{product_rules['minimum_width']} px"
         )
 
     elif "minimum_longest_side" in product_rules:
+
         st.metric(
             "Minimum Longest Side",
             f"{product_rules['minimum_longest_side']} px"
         )
 
     elif "current_minimum_width" in product_rules:
+
         st.metric(
             "Current Minimum Width",
             f"{product_rules['current_minimum_width']} px"
         )
 
     elif "maximum_width" in product_rules:
+
         st.metric(
             "Maximum Width",
             f"{product_rules['maximum_width']} px"
         )
 
     else:
+
         st.metric(
             "Standard",
             market_standard
@@ -160,30 +171,35 @@ with col1:
 with col2:
 
     if "minimum_height" in product_rules:
+
         st.metric(
             "Minimum Height",
             f"{product_rules['minimum_height']} px"
         )
 
     elif "minimum_shortest_side" in product_rules:
+
         st.metric(
             "Minimum Shortest Side",
             f"{product_rules['minimum_shortest_side']} px"
         )
 
     elif "current_minimum_height" in product_rules:
+
         st.metric(
             "Current Minimum Height",
             f"{product_rules['current_minimum_height']} px"
         )
 
     elif "maximum_height" in product_rules:
+
         st.metric(
             "Maximum Height",
             f"{product_rules['maximum_height']} px"
         )
 
     else:
+
         st.metric(
             "Standard",
             market_standard
@@ -193,12 +209,14 @@ with col2:
 with col3:
 
     if "maximum_file_size_mb" in product_rules:
+
         st.metric(
             "Maximum File Size",
             f"{product_rules['maximum_file_size_mb']} MB"
         )
 
     else:
+
         st.metric(
             "Standard",
             market_standard
@@ -226,400 +244,442 @@ uploaded_file = st.file_uploader(
 
 
 # ============================================================
+# NO IMAGE
+# ============================================================
+
+if uploaded_file is None:
+
+    st.info(
+        "👆 Select your analysis settings and upload an image to begin."
+    )
+
+
+# ============================================================
 # IMAGE ANALYSIS
 # ============================================================
 
-if uploaded_file is not None:
+else:
 
-    try:
+    image = Image.open(uploaded_file)
 
-        # ====================================================
-        # OPEN IMAGE
-        # ====================================================
+    rgb_image = image.convert("RGB")
 
-        image = Image.open(uploaded_file)
-        rgb_image = image.convert("RGB")
+    width, height = image.size
 
-        width, height = image.size
+    file_size_mb = uploaded_file.size / (
+        1024 * 1024
+    )
 
-        file_size_mb = uploaded_file.size / (1024 * 1024)
+    image_format = image.format or "Unknown"
 
-        image_format = image.format or "Unknown"
-
-        aspect_ratio = width / height
+    aspect_ratio = width / height
 
 
-        # ====================================================
-        # BRIGHTNESS
-        # ====================================================
+    # ========================================================
+    # BRIGHTNESS
+    # ========================================================
 
-        grayscale = rgb_image.convert("L")
+    grayscale = rgb_image.convert("L")
 
-        brightness = ImageStat.Stat(
-            grayscale
-        ).mean[0]
-
-
-        # ====================================================
-        # CONTRAST
-        # ====================================================
-
-        contrast = ImageStat.Stat(
-            grayscale
-        ).stddev[0]
+    brightness = ImageStat.Stat(
+        grayscale
+    ).mean[0]
 
 
-        # ====================================================
-        # SHARPNESS
-        # ====================================================
+    # ========================================================
+    # CONTRAST
+    # ========================================================
 
-        edges = grayscale.filter(
-            ImageFilter.FIND_EDGES
+    contrast = ImageStat.Stat(
+        grayscale
+    ).stddev[0]
+
+
+    # ========================================================
+    # SHARPNESS
+    # ========================================================
+
+    edges = grayscale.filter(
+        ImageFilter.FIND_EDGES
+    )
+
+    sharpness = ImageStat.Stat(
+        edges
+    ).mean[0]
+
+
+    # ========================================================
+    # IMAGE PREVIEW
+    # ========================================================
+
+    st.subheader("🖼️ Uploaded Image")
+
+    st.image(
+        image,
+        use_container_width=True
+    )
+
+    st.divider()
+
+
+    # ========================================================
+    # TECHNICAL INFORMATION
+    # ========================================================
+
+    st.subheader("📊 Technical Information")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+
+    with col1:
+
+        st.metric(
+            "Width",
+            f"{width:,} px"
         )
 
-        sharpness = ImageStat.Stat(
-            edges
-        ).mean[0]
 
+    with col2:
 
-        # ====================================================
-        # IMAGE PREVIEW
-        # ====================================================
-
-        st.subheader("🖼️ Uploaded Image")
-
-        st.image(
-            image,
-            use_container_width=True
+        st.metric(
+            "Height",
+            f"{height:,} px"
         )
 
-        st.divider()
 
+    with col3:
 
-        # ====================================================
-        # TECHNICAL INFORMATION
-        # ====================================================
-
-        st.subheader("📊 Technical Information")
-
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            st.metric(
-                "Width",
-                f"{width:,} px"
-            )
-
-        with col2:
-            st.metric(
-                "Height",
-                f"{height:,} px"
-            )
-
-        with col3:
-            st.metric(
-                "File Size",
-                f"{file_size_mb:.2f} MB"
-            )
-
-        with col4:
-            st.metric(
-                "Format",
-                image_format
-            )
-
-
-        # ====================================================
-        # IMAGE QUALITY METRICS
-        # ====================================================
-
-        st.subheader("🔍 Image Quality Metrics")
-
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            st.metric(
-                "Aspect Ratio",
-                f"{aspect_ratio:.2f}:1"
-            )
-
-        with col2:
-            st.metric(
-                "Brightness",
-                f"{brightness:.1f}"
-            )
-
-        with col3:
-            st.metric(
-                "Contrast",
-                f"{contrast:.1f}"
-            )
-
-        with col4:
-            st.metric(
-                "Sharpness",
-                f"{sharpness:.1f}"
-            )
-
-
-        st.divider()
-
-
-        # ====================================================
-        # MARKET STANDARD CHECKS
-        # ====================================================
-
-        st.subheader("✅ Market Standard Checks")
-
-
-        # ====================================================
-        # RESOLUTION CHECK
-        # ====================================================
-
-        if "minimum_width" in product_rules:
-
-            min_width = product_rules["minimum_width"]
-            min_height = product_rules["minimum_height"]
-
-            resolution_pass = (
-                width >= min_width
-                and height >= min_height
-            )
-
-            if resolution_pass:
-
-                st.success(
-                    f"✓ Resolution: {width} × {height} px — PASS"
-                )
-
-            else:
-
-                st.error(
-                    f"✕ Resolution: {width} × {height} px — "
-                    f"Required: {min_width} × {min_height} px"
-                )
-
-
-        elif "minimum_longest_side" in product_rules:
-
-            longest_side = max(width, height)
-            shortest_side = min(width, height)
-
-            min_longest = product_rules[
-                "minimum_longest_side"
-            ]
-
-            min_shortest = product_rules[
-                "minimum_shortest_side"
-            ]
-
-            resolution_pass = (
-                longest_side >= min_longest
-                and shortest_side >= min_shortest
-            )
-
-            if resolution_pass:
-
-                st.success(
-                    f"✓ Resolution: {width} × {height} px — PASS"
-                )
-
-            else:
-
-                st.error(
-                    f"✕ Resolution: {width} × {height} px — "
-                    f"Required longest side ≥ {min_longest}px "
-                    f"and shortest side ≥ {min_shortest}px"
-                )
-
-
-        elif "current_minimum_width" in product_rules:
-
-            min_width = product_rules[
-                "current_minimum_width"
-            ]
-
-            min_height = product_rules[
-                "current_minimum_height"
-            ]
-
-            resolution_pass = (
-                width >= min_width
-                and height >= min_height
-            )
-
-            if resolution_pass:
-
-                st.success(
-                    f"✓ Resolution: {width} × {height} px — PASS"
-                )
-
-            else:
-
-                st.warning(
-                    f"⚠ Resolution: {width} × {height} px — "
-                    f"Below current minimum reference"
-                )
-
-
-        elif "maximum_width" in product_rules:
-
-            max_width = product_rules["maximum_width"]
-            max_height = product_rules["maximum_height"]
-
-            resolution_pass = (
-                width <= max_width
-                and height <= max_height
-            )
-
-            if resolution_pass:
-
-                st.success(
-                    f"✓ Resolution: {width} × {height} px — PASS"
-                )
-
-            else:
-
-                st.error(
-                    f"✕ Resolution: {width} × {height} px — "
-                    f"Maximum: {max_width} × {max_height} px"
-                )
-
-
-        # ====================================================
-        # FILE SIZE CHECK
-        # ====================================================
-
-        if "maximum_file_size_mb" in product_rules:
-
-            max_file_size = product_rules[
-                "maximum_file_size_mb"
-            ]
-
-            if file_size_mb <= max_file_size:
-
-                st.success(
-                    f"✓ File size: {file_size_mb:.2f} MB — PASS"
-                )
-
-            else:
-
-                st.error(
-                    f"✕ File size: {file_size_mb:.2f} MB — "
-                    f"Maximum: {max_file_size} MB"
-                )
-
-
-        # ====================================================
-        # FORMAT CHECK
-        # ====================================================
-
-        allowed_formats = product_rules.get(
-            "allowed_formats",
-            []
+        st.metric(
+            "File Size",
+            f"{file_size_mb:.2f} MB"
         )
 
-        if image_format.upper() in [
-            str(x).upper()
-            for x in allowed_formats
-        ]:
+
+    with col4:
+
+        st.metric(
+            "Format",
+            image_format
+        )
+
+
+    # ========================================================
+    # IMAGE QUALITY
+    # ========================================================
+
+    st.subheader("🔍 Image Quality Metrics")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+
+    with col1:
+
+        st.metric(
+            "Aspect Ratio",
+            f"{aspect_ratio:.2f}:1"
+        )
+
+
+    with col2:
+
+        st.metric(
+            "Brightness",
+            f"{brightness:.1f}"
+        )
+
+
+    with col3:
+
+        st.metric(
+            "Contrast",
+            f"{contrast:.1f}"
+        )
+
+
+    with col4:
+
+        st.metric(
+            "Sharpness",
+            f"{sharpness:.1f}"
+        )
+
+
+    st.divider()
+
+
+    # ========================================================
+    # MARKET STANDARD CHECKS
+    # ========================================================
+
+    st.subheader("✅ Market Standard Checks")
+
+
+    # ========================================================
+    # RESOLUTION
+    # ========================================================
+
+    if "minimum_width" in product_rules:
+
+        min_width = product_rules[
+            "minimum_width"
+        ]
+
+        min_height = product_rules[
+            "minimum_height"
+        ]
+
+        if (
+            width >= min_width
+            and
+            height >= min_height
+        ):
 
             st.success(
-                f"✓ Format: {image_format} — PASS"
+                f"✓ Resolution: {width} × {height} px — PASS"
             )
 
         else:
 
             st.error(
-                f"✕ Format: {image_format} — "
-                f"Allowed: {', '.join(allowed_formats)}"
+                f"✕ Resolution: {width} × {height} px — "
+                f"Required: {min_width} × {min_height} px"
             )
 
 
-        # ====================================================
-        # PRODUCT COVERAGE STANDARD
-        # ====================================================
+    elif "minimum_longest_side" in product_rules:
 
-        if "recommended_product_coverage_min" in product_rules:
+        longest_side = max(
+            width,
+            height
+        )
 
-            min_coverage = product_rules[
-                "recommended_product_coverage_min"
-            ]
+        shortest_side = min(
+            width,
+            height
+        )
 
-            max_coverage = product_rules[
-                "recommended_product_coverage_max"
-            ]
+        min_longest = product_rules[
+            "minimum_longest_side"
+        ]
 
-            st.info(
-                f"ℹ Product coverage standard: "
-                f"{min_coverage}% – {max_coverage}%."
+        min_shortest = product_rules[
+            "minimum_shortest_side"
+        ]
+
+        if (
+            longest_side >= min_longest
+            and
+            shortest_side >= min_shortest
+        ):
+
+            st.success(
+                f"✓ Resolution: {width} × {height} px — PASS"
             )
 
-        elif "minimum_product_coverage" in product_rules:
+        else:
 
-            min_coverage = product_rules[
-                "minimum_product_coverage"
-            ]
-
-            st.info(
-                f"ℹ Product coverage requirement: "
-                f"minimum {min_coverage}%."
+            st.error(
+                f"✕ Resolution: {width} × {height} px — "
+                f"Required longest side ≥ {min_longest}px "
+                f"and shortest side ≥ {min_shortest}px"
             )
 
 
-        # ====================================================
-        # VISUAL AI ANALYSIS
-        # ====================================================
+    elif "current_minimum_width" in product_rules:
 
-        st.divider()
+        min_width = product_rules[
+            "current_minimum_width"
+        ]
 
-        st.subheader("🤖 Visual AI Analysis")
+        min_height = product_rules[
+            "current_minimum_height"
+        ]
 
-        st.write(
-            "Gemini will visually inspect the uploaded image "
-            "against the selected market standard."
+        if (
+            width >= min_width
+            and
+            height >= min_height
+        ):
+
+            st.success(
+                f"✓ Resolution: {width} × {height} px — PASS"
+            )
+
+        else:
+
+            st.warning(
+                f"⚠ Resolution: {width} × {height} px — "
+                "Below current minimum reference."
+            )
+
+
+    elif "maximum_width" in product_rules:
+
+        max_width = product_rules[
+            "maximum_width"
+        ]
+
+        max_height = product_rules[
+            "maximum_height"
+        ]
+
+        if (
+            width <= max_width
+            and
+            height <= max_height
+        ):
+
+            st.success(
+                f"✓ Resolution: {width} × {height} px — PASS"
+            )
+
+        else:
+
+            st.error(
+                f"✕ Resolution: {width} × {height} px — "
+                f"Maximum: {max_width} × {max_height} px"
+            )
+
+
+    # ========================================================
+    # FILE SIZE
+    # ========================================================
+
+    if "maximum_file_size_mb" in product_rules:
+
+        max_file_size = product_rules[
+            "maximum_file_size_mb"
+        ]
+
+        if file_size_mb <= max_file_size:
+
+            st.success(
+                f"✓ File size: {file_size_mb:.2f} MB — PASS"
+            )
+
+        else:
+
+            st.error(
+                f"✕ File size: {file_size_mb:.2f} MB — "
+                f"Maximum: {max_file_size} MB"
+            )
+
+
+    # ========================================================
+    # FORMAT
+    # ========================================================
+
+    allowed_formats = product_rules.get(
+        "allowed_formats",
+        []
+    )
+
+    allowed_formats_upper = [
+        str(fmt).upper()
+        for fmt in allowed_formats
+    ]
+
+
+    if image_format.upper() in allowed_formats_upper:
+
+        st.success(
+            f"✓ Format: {image_format} — PASS"
+        )
+
+    else:
+
+        st.error(
+            f"✕ Format: {image_format} — "
+            f"Allowed: {', '.join(allowed_formats)}"
         )
 
 
-        if gemini_client is None:
+    # ========================================================
+    # PRODUCT COVERAGE STANDARD
+    # ========================================================
 
-            st.error(
-                "Gemini API key is not configured. "
-                "Please check Streamlit Secrets."
-            )
+    if "recommended_product_coverage_min" in product_rules:
 
-        else:
+        min_coverage = product_rules[
+            "recommended_product_coverage_min"
+        ]
 
-            analyze_button = st.button(
-                "🔍 Analyze Image with AI"
-            )
+        max_coverage = product_rules[
+            "recommended_product_coverage_max"
+        ]
 
-
-            if analyze_button:
-
-                with st.spinner(
-                    "Gemini is analyzing the image..."
-                ):
-
-                    try:
-
-                        # ====================================================
-                        # IMAGE DATA
-                        # ====================================================
-
-                        image_bytes = uploaded_file.getvalue()
-
-                        image_part = types.Part.from_bytes(
-                            data=image_bytes,
-                            mime_type=uploaded_file.type
-                        )
+        st.info(
+            f"ℹ Product coverage standard: "
+            f"{min_coverage}% – {max_coverage}%."
+        )
 
 
-                        # ====================================================
-                        # VISUAL ANALYSIS PROMPT
-                        # ====================================================
+    elif "minimum_product_coverage" in product_rules:
 
-                        visual_prompt = f"""
+        min_coverage = product_rules[
+            "minimum_product_coverage"
+        ]
+
+        st.info(
+            f"ℹ Product coverage requirement: "
+            f"minimum {min_coverage}%."
+        )
+
+
+    # ========================================================
+    # VISUAL AI
+    # ========================================================
+
+    st.divider()
+
+    st.subheader("🤖 Visual AI Analysis")
+
+    st.write(
+        "Gemini will visually inspect the uploaded image "
+        "against the selected market standard."
+    )
+
+
+    if gemini_client is None:
+
+        st.error(
+            "Gemini API key is not configured. "
+            "Please check Streamlit Secrets."
+        )
+
+
+    else:
+
+        analyze_button = st.button(
+            "🔍 Analyze Image with AI"
+        )
+
+
+        if analyze_button:
+
+            with st.spinner(
+                "Gemini is analyzing the image..."
+            ):
+
+                try:
+
+                    # ============================================
+                    # IMAGE DATA
+                    # ============================================
+
+                    image_bytes = uploaded_file.getvalue()
+
+                    image_part = types.Part.from_bytes(
+                        data=image_bytes,
+                        mime_type=uploaded_file.type
+                    )
+
+
+                    # ============================================
+                    # AI PROMPT
+                    # ============================================
+
+                    visual_prompt = f"""
 You are an expert e-commerce image quality analyst.
 
 Analyze the uploaded image as a {analysis_type}
@@ -681,322 +741,345 @@ Rules:
 """
 
 
-                        # ====================================================
-                        # SEND IMAGE TO GEMINI
-                        # ====================================================
+                    # ============================================
+                    # SEND IMAGE TO GEMINI
+                    # ============================================
 
-                        response = gemini_client.models.generate_content(
-                            model="gemini-3.5-flash",
-                            contents=[
-                                image_part,
-                                visual_prompt
-                            ]
-                        )
+                    response = gemini_client.models.generate_content(
 
+                        model="gemini-3.5-flash",
 
-                        # ====================================================
-                        # READ RESPONSE
-                        # ====================================================
-
-                        if response.text is None:
-
-                            raise Exception(
-                                "Gemini returned an empty response."
-                            )
-
-                        ai_text = response.text.strip()
-
-
-                        # ====================================================
-                        # CLEAN MARKDOWN
-                        # ====================================================
-
-                        if "```json" in ai_text:
-
-                            ai_text = ai_text.replace(
-                                "```json",
-                                ""
-                            )
-
-                            ai_text = ai_text.replace(
-                                "```",
-                                ""
-                            )
-
-                            ai_text = ai_text.strip()
-
-                        elif "```" in ai_text:
-
-                            ai_text = ai_text.replace(
-                                "```",
-                                ""
-                            )
-
-                            ai_text = ai_text.strip()
-
-
-                        # ====================================================
-                        # EXTRACT JSON OBJECT
-                        # ====================================================
-
-                        start_index = ai_text.find("{")
-                        end_index = ai_text.rfind("}")
-
-                        if start_index == -1 or end_index == -1:
-
-                            raise Exception(
-                                "Gemini did not return valid JSON."
-                            )
-
-                        ai_json_text = ai_text[
-                            start_index:end_index + 1
+                        contents=[
+                            image_part,
+                            visual_prompt
                         ]
+                    )
 
 
-                        # ====================================================
-                        # CONVERT TO JSON
-                        # ====================================================
+                    # ============================================
+                    # READ RESPONSE
+                    # ============================================
 
-                        ai_result = json.loads(
-                            ai_json_text
+                    if not response.text:
+
+                        raise Exception(
+                            "Gemini returned an empty response."
                         )
 
 
-                        # ====================================================
-                        # SUCCESS
-                        # ====================================================
+                    ai_text = response.text.strip()
 
-                        st.success(
-                            "✓ Visual AI analysis completed"
+
+                    # ============================================
+                    # CLEAN MARKDOWN
+                    # ============================================
+
+                    if "```json" in ai_text:
+
+                        ai_text = ai_text.replace(
+                            "```json",
+                            ""
+                        )
+
+                        ai_text = ai_text.replace(
+                            "```",
+                            ""
+                        )
+
+                        ai_text = ai_text.strip()
+
+
+                    elif "```" in ai_text:
+
+                        ai_text = ai_text.replace(
+                            "```",
+                            ""
+                        )
+
+                        ai_text = ai_text.strip()
+
+
+                    # ============================================
+                    # FIND JSON
+                    # ============================================
+
+                    start_index = ai_text.find("{")
+
+                    end_index = ai_text.rfind("}")
+
+
+                    if (
+                        start_index == -1
+                        or
+                        end_index == -1
+                    ):
+
+                        raise Exception(
+                            "Gemini did not return valid JSON."
                         )
 
 
-                        st.subheader(
-                            "📋 AI Analysis Result"
+                    ai_json_text = ai_text[
+                        start_index:end_index + 1
+                    ]
+
+
+                    # ============================================
+                    # CONVERT TO JSON
+                    # ============================================
+
+                    ai_result = json.loads(
+                        ai_json_text
+                    )
+
+
+                    # ============================================
+                    # SUCCESS
+                    # ============================================
+
+                    st.success(
+                        "✓ Visual AI analysis completed"
+                    )
+
+                    st.subheader(
+                        "📋 AI Analysis Result"
+                    )
+
+
+                    # ============================================
+                    # SUMMARY
+                    # ============================================
+
+                    col1, col2, col3 = st.columns(3)
+
+
+                    with col1:
+
+                        if ai_result.get(
+                            "product_detected",
+                            False
+                        ):
+
+                            st.success(
+                                "✓ Product Detected"
+                            )
+
+                        else:
+
+                            st.error(
+                                "✕ Product Not Detected"
+                            )
+
+
+                    with col2:
+
+                        if ai_result.get(
+                            "product_fully_visible",
+                            False
+                        ):
+
+                            st.success(
+                                "✓ Product Fully Visible"
+                            )
+
+                        else:
+
+                            st.warning(
+                                "⚠ Product Not Fully Visible"
+                            )
+
+
+                    with col3:
+
+                        coverage = ai_result.get(
+                            "estimated_product_coverage",
+                            0
+                        )
+
+                        st.metric(
+                            "Product Coverage",
+                            f"{coverage}%"
                         )
 
 
-                        # ====================================================
-                        # TOP SUMMARY
-                        # ====================================================
-
-                        col1, col2, col3 = st.columns(3)
+                    st.divider()
 
 
-                        with col1:
+                    # ============================================
+                    # VISUAL DETAILS
+                    # ============================================
 
-                            if ai_result.get(
-                                "product_detected",
-                                False
-                            ):
-
-                                st.success(
-                                    "✓ Product Detected"
-                                )
-
-                            else:
-
-                                st.error(
-                                    "✕ Product Not Detected"
-                                )
+                    col1, col2 = st.columns(2)
 
 
-                        with col2:
-
-                            if ai_result.get(
-                                "product_fully_visible",
-                                False
-                            ):
-
-                                st.success(
-                                    "✓ Product Fully Visible"
-                                )
-
-                            else:
-
-                                st.warning(
-                                    "⚠ Product Not Fully Visible"
-                                )
-
-
-                        with col3:
-
-                            coverage = ai_result.get(
-                                "estimated_product_coverage",
-                                0
-                            )
-
-                            st.metric(
-                                "Product Coverage",
-                                f"{coverage}%"
-                            )
-
-
-                        st.divider()
-
-
-                        # ====================================================
-                        # VISUAL DETAILS
-                        # ====================================================
-
-                        col1, col2 = st.columns(2)
-
-
-                        with col1:
-
-                            st.write(
-                                "**Product Position**"
-                            )
-
-                            st.write(
-                                str(
-                                    ai_result.get(
-                                        "product_position",
-                                        "Unknown"
-                                    )
-                                ).title()
-                            )
-
-
-                            st.write(
-                                "**Background**"
-                            )
-
-                            st.write(
-                                ai_result.get(
-                                    "background",
-                                    "Unknown"
-                                )
-                            )
-
-
-                            st.write(
-                                "**Visual Quality**"
-                            )
-
-                            st.write(
-                                str(
-                                    ai_result.get(
-                                        "visual_quality",
-                                        "Unknown"
-                                    )
-                                ).title()
-                            )
-
-
-                        with col2:
-
-                            st.write(
-                                "**Text Detected**"
-                            )
-
-                            if ai_result.get(
-                                "text_detected",
-                                False
-                            ):
-
-                                st.warning("⚠ Yes")
-
-                            else:
-
-                                st.success("✓ No")
-
-
-                            st.write(
-                                "**Watermark Detected**"
-                            )
-
-                            if ai_result.get(
-                                "watermark_detected",
-                                False
-                            ):
-
-                                st.warning("⚠ Yes")
-
-                            else:
-
-                                st.success("✓ No")
-
-
-                            st.write(
-                                "**Logo / Branding Detected**"
-                            )
-
-                            if ai_result.get(
-                                "logo_or_branding_detected",
-                                False
-                            ):
-
-                                st.warning("⚠ Yes")
-
-                            else:
-
-                                st.success("✓ No")
-
-
-                        st.divider()
-
-
-                        # ====================================================
-                        # CROPPING
-                        # ====================================================
+                    with col1:
 
                         st.write(
-                            "**Product Cropped**"
+                            "**Product Position**"
+                        )
+
+                        st.write(
+                            str(
+                                ai_result.get(
+                                    "product_position",
+                                    "Unknown"
+                                )
+                            ).title()
+                        )
+
+
+                        st.write(
+                            "**Background**"
+                        )
+
+                        st.write(
+                            ai_result.get(
+                                "background",
+                                "Unknown"
+                            )
+                        )
+
+
+                        st.write(
+                            "**Visual Quality**"
+                        )
+
+                        st.write(
+                            str(
+                                ai_result.get(
+                                    "visual_quality",
+                                    "Unknown"
+                                )
+                            ).title()
+                        )
+
+
+                    with col2:
+
+                        st.write(
+                            "**Text Detected**"
                         )
 
                         if ai_result.get(
-                            "product_cropped",
+                            "text_detected",
                             False
                         ):
 
                             st.warning(
-                                "⚠ Product appears to be cropped."
+                                "⚠ Yes"
                             )
 
                         else:
 
                             st.success(
-                                "✓ Product does not appear cropped."
+                                "✓ No"
                             )
 
 
-                        # ====================================================
-                        # OVERALL OBSERVATION
-                        # ====================================================
-
                         st.write(
-                            "**Overall Observation**"
+                            "**Watermark Detected**"
                         )
 
-                        st.write(
-                            ai_result.get(
-                                "overall_observation",
-                                "No observation returned."
+                        if ai_result.get(
+                            "watermark_detected",
+                            False
+                        ):
+
+                            st.warning(
+                                "⚠ Yes"
                             )
+
+                        else:
+
+                            st.success(
+                                "✓ No"
+                            )
+
+
+                        st.write(
+                            "**Logo / Branding Detected**"
+                        )
+
+                        if ai_result.get(
+                            "logo_or_branding_detected",
+                            False
+                        ):
+
+                            st.warning(
+                                "⚠ Yes"
+                            )
+
+                        else:
+
+                            st.success(
+                                "✓ No"
+                            )
+
+
+                    st.divider()
+
+
+                    # ============================================
+                    # CROPPING
+                    # ============================================
+
+                    st.write(
+                        "**Product Cropped**"
+                    )
+
+
+                    if ai_result.get(
+                        "product_cropped",
+                        False
+                    ):
+
+                        st.warning(
+                            "⚠ Product appears to be cropped."
+                        )
+
+                    else:
+
+                        st.success(
+                            "✓ Product does not appear cropped."
                         )
 
 
-                    except Exception as e:
+                    # ============================================
+                    # OBSERVATION
+                    # ============================================
 
-                        st.error(
-                            f"AI analysis failed: {str(e)}"
+                    st.write(
+                        "**Overall Observation**"
+                    )
+
+                    st.write(
+                        ai_result.get(
+                            "overall_observation",
+                            "No observation returned."
                         )
+                    )
 
 
-        # ====================================================
-        # ANALYSIS FOCUS
-        # ====================================================
+                except Exception as e:
 
-        st.divider()
-
-        st.subheader("🔎 Analysis Focus")
+                    st.error(
+                        f"AI analysis failed: {str(e)}"
+                    )
 
 
-        if analysis_type == "Product Image":
+    # ========================================================
+    # ANALYSIS FOCUS
+    # ========================================================
 
-            st.write(
-                """
+    st.divider()
+
+    st.subheader("🔎 Analysis Focus")
+
+
+    if analysis_type == "Product Image":
+
+        st.write(
+            """
 **Product Image Analysis**
 
 The application is evaluating:
@@ -1014,13 +1097,13 @@ The application is evaluating:
 - Logo / branding
 - Image quality
 """
-            )
+        )
 
 
-        elif analysis_type == "Product Page Screenshot":
+    elif analysis_type == "Product Page Screenshot":
 
-            st.write(
-                """
+        st.write(
+            """
 **Product Page Analysis**
 
 The visual AI stage will evaluate:
@@ -1034,13 +1117,13 @@ The visual AI stage will evaluate:
 - Visual hierarchy
 - Layout
 """
-            )
+        )
 
 
-        elif analysis_type == "Website Screenshot":
+    elif analysis_type == "Website Screenshot":
 
-            st.write(
-                """
+        st.write(
+            """
 **Website Screenshot Analysis**
 
 The visual AI stage will evaluate:
@@ -1053,13 +1136,13 @@ The visual AI stage will evaluate:
 - Branding
 - Content visibility
 """
-            )
+        )
 
 
-        elif analysis_type == "Marketing Banner":
+    elif analysis_type == "Marketing Banner":
 
-            st.write(
-                """
+        st.write(
+            """
 **Marketing Banner Analysis**
 
 The visual AI stage will evaluate:
@@ -1072,13 +1155,13 @@ The visual AI stage will evaluate:
 - Image quality
 - Composition
 """
-            )
+        )
 
 
-        elif analysis_type == "Social Media Creative":
+    elif analysis_type == "Social Media Creative":
 
-            st.write(
-                """
+        st.write(
+            """
 **Social Media Creative Analysis**
 
 The visual AI stage will evaluate:
@@ -1090,13 +1173,13 @@ The visual AI stage will evaluate:
 - Platform suitability
 - Image quality
 """
-            )
+        )
 
 
-        elif analysis_type == "AI Generated Image":
+    elif analysis_type == "AI Generated Image":
 
-            st.write(
-                """
+        st.write(
+            """
 **AI Generated Image Analysis**
 
 The visual AI stage will evaluate:
@@ -1108,29 +1191,15 @@ The visual AI stage will evaluate:
 - Text rendering
 - Product presentation
 """
-            )
+        )
 
 
-        else:
+    else:
 
-            st.write(
-                """
+        st.write(
+            """
 **Custom Analysis**
 
 A custom set of standards will be applied.
 """
-            )
-
-
-except Exception as e:
-
-    st.error(
-        f"Image processing error: {str(e)}"
-    )
-
-
-else:
-
-    st.info(
-        "👆 Select your analysis settings and upload an image to begin."
-    )
+        )
