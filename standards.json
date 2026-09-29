@@ -1,0 +1,11 @@
+{
+  "ecommerce_product_image": {
+    "minimum_resolution": {
+      "width": 1000,
+      "height": 1000
+    },
+    "background": "clean",
+    "product_visibility": "clear",
+    "product_position": "centered"
+  }
+}
