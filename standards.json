@@ -1,11 +1,104 @@
 {
-  "ecommerce_product_image": {
-    "minimum_resolution": {
-      "width": 1000,
-      "height": 1000
-    },
-    "background": "clean",
-    "product_visibility": "clear",
-    "product_position": "centered"
+  "general_ecommerce": {
+    "name": "General E-commerce",
+
+    "product_image": {
+      "minimum_width": 800,
+      "minimum_height": 800,
+      "recommended_product_coverage_min": 75,
+      "recommended_product_coverage_max": 90,
+      "maximum_file_size_mb": 16,
+      "allowed_formats": [
+        "JPEG",
+        "PNG",
+        "WEBP"
+      ]
+    }
+  },
+
+  "amazon": {
+    "name": "Amazon",
+
+    "product_image": {
+      "minimum_longest_side": 1000,
+      "minimum_shortest_side": 500,
+      "minimum_product_coverage": 85,
+      "background": "pure_white",
+      "allow_text": false,
+      "allow_watermark": false,
+      "allow_logo": false,
+      "show_entire_product": true,
+      "allowed_formats": [
+        "JPEG",
+        "PNG",
+        "TIFF"
+      ]
+    }
+  },
+
+  "google_shopping": {
+    "name": "Google Shopping",
+
+    "product_image": {
+      "current_minimum_width": 100,
+      "current_minimum_height": 100,
+      "upcoming_minimum_width": 500,
+      "upcoming_minimum_height": 500,
+      "recommended_width": 800,
+      "recommended_height": 800,
+      "recommended_product_coverage_min": 75,
+      "recommended_product_coverage_max": 90,
+      "maximum_file_size_mb": 16,
+      "maximum_megapixels": 64,
+      "allow_promotional_text": false,
+      "allow_watermark": false,
+      "allow_border": false,
+      "allowed_formats": [
+        "JPEG",
+        "PNG",
+        "WEBP",
+        "GIF",
+        "BMP",
+        "TIFF"
+      ]
+    }
+  },
+
+  "shopify": {
+    "name": "Shopify",
+
+    "product_image": {
+      "maximum_width": 5000,
+      "maximum_height": 5000,
+      "maximum_megapixels": 25,
+      "maximum_file_size_mb": 20,
+      "recommended_square_width": 2048,
+      "recommended_square_height": 2048,
+      "allowed_formats": [
+        "JPEG",
+        "PNG",
+        "WEBP",
+        "GIF",
+        "HEIC",
+        "TIFF",
+        "BMP",
+        "SVG"
+      ]
+    }
+  },
+
+  "custom": {
+    "name": "Custom",
+
+    "product_image": {
+      "minimum_width": 800,
+      "minimum_height": 800,
+      "maximum_file_size_mb": 20,
+      "allowed_formats": [
+        "JPEG",
+        "PNG",
+        "WEBP"
+      ]
+    }
   }
 }
