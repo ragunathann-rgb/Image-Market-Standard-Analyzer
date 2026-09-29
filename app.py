@@ -1,5 +1,6 @@
 import streamlit as st
 from PIL import Image, ImageStat, ImageFilter
+import json
 
 
 # ============================================================
@@ -11,6 +12,14 @@ st.set_page_config(
     page_icon="🖼️",
     layout="wide"
 )
+
+
+# ============================================================
+# LOAD MARKET STANDARDS
+# ============================================================
+
+with open("standards.json", "r") as file:
+    standards = json.load(file)
 
 
 # ============================================================
@@ -66,6 +75,23 @@ with col2:
 
 
 # ============================================================
+# CONVERT MARKET NAME TO JSON KEY
+# ============================================================
+
+standard_key_map = {
+    "General E-commerce": "general_ecommerce",
+    "Amazon": "amazon",
+    "Google Shopping": "google_shopping",
+    "Shopify": "shopify",
+    "Custom": "custom"
+}
+
+standard_key = standard_key_map[market_standard]
+
+selected_standard = standards[standard_key]
+
+
+# ============================================================
 # SHOW SELECTED SETTINGS
 # ============================================================
 
@@ -74,8 +100,98 @@ st.info(
     f"Market Standard: **{market_standard}**"
 )
 
-
 st.divider()
+
+
+# ============================================================
+# DISPLAY MARKET STANDARD
+# ============================================================
+
+st.subheader("📋 Selected Market Standard")
+
+if analysis_type == "Product Image":
+
+    product_rules = selected_standard["product_image"]
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        if "minimum_width" in product_rules:
+
+            st.metric(
+                "Minimum Width",
+                f"{product_rules['minimum_width']} px"
+            )
+
+        elif "minimum_longest_side" in product_rules:
+
+            st.metric(
+                "Minimum Longest Side",
+                f"{product_rules['minimum_longest_side']} px"
+            )
+
+        elif "current_minimum_width" in product_rules:
+
+            st.metric(
+                "Current Minimum Width",
+                f"{product_rules['current_minimum_width']} px"
+            )
+
+        else:
+
+            st.metric(
+                "Maximum Width",
+                f"{product_rules.get('maximum_width', 'N/A')} px"
+            )
+
+
+    with col2:
+
+        if "minimum_height" in product_rules:
+
+            st.metric(
+                "Minimum Height",
+                f"{product_rules['minimum_height']} px"
+            )
+
+        elif "minimum_shortest_side" in product_rules:
+
+            st.metric(
+                "Minimum Shortest Side",
+                f"{product_rules['minimum_shortest_side']} px"
+            )
+
+        elif "current_minimum_height" in product_rules:
+
+            st.metric(
+                "Current Minimum Height",
+                f"{product_rules['current_minimum_height']} px"
+            )
+
+        else:
+
+            st.metric(
+                "Maximum Height",
+                f"{product_rules.get('maximum_height', 'N/A')} px"
+            )
+
+
+    with col3:
+
+        if "maximum_file_size_mb" in product_rules:
+
+            st.metric(
+                "Maximum File Size",
+                f"{product_rules['maximum_file_size_mb']} MB"
+            )
+
+        else:
+
+            st.metric(
+                "Standard",
+                market_standard
+            )
 
 
 # ============================================================
@@ -86,12 +202,12 @@ st.subheader("📤 Upload Image")
 
 uploaded_file = st.file_uploader(
     "Upload an image for analysis",
-    type=["jpg", "jpeg", "png", "webp"]
+    type=["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff"]
 )
 
 
 # ============================================================
-# IMAGE ANALYSIS
+# ANALYSIS
 # ============================================================
 
 if uploaded_file:
@@ -106,7 +222,7 @@ if uploaded_file:
 
 
     # --------------------------------------------------------
-    # BASIC IMAGE INFORMATION
+    # BASIC INFORMATION
     # --------------------------------------------------------
 
     width, height = image.size
@@ -144,7 +260,7 @@ if uploaded_file:
 
 
     # ========================================================
-    # DISPLAY IMAGE
+    # IMAGE PREVIEW
     # ========================================================
 
     st.subheader("🖼️ Uploaded Image")
@@ -154,12 +270,11 @@ if uploaded_file:
         use_container_width=True
     )
 
-
     st.divider()
 
 
     # ========================================================
-    # BASIC IMAGE INFORMATION
+    # TECHNICAL INFORMATION
     # ========================================================
 
     st.subheader("📊 Technical Information")
@@ -236,8 +351,187 @@ if uploaded_file:
 
 
     # ========================================================
-    # ANALYSIS BASED ON IMAGE TYPE
+    # MARKET STANDARD CHECKS
     # ========================================================
+
+    st.subheader("✅ Market Standard Checks")
+
+
+    product_rules = selected_standard["product_image"]
+
+
+    # --------------------------------------------------------
+    # RESOLUTION CHECK
+    # --------------------------------------------------------
+
+    if "minimum_width" in product_rules:
+
+        min_width = product_rules["minimum_width"]
+        min_height = product_rules["minimum_height"]
+
+        resolution_pass = (
+            width >= min_width and
+            height >= min_height
+        )
+
+        if resolution_pass:
+
+            st.success(
+                f"✓ Resolution: {width} × {height} px — PASS"
+            )
+
+        else:
+
+            st.error(
+                f"✕ Resolution: {width} × {height} px — "
+                f"Required: {min_width} × {min_height} px"
+            )
+
+
+    elif "minimum_longest_side" in product_rules:
+
+        longest_side = max(width, height)
+        shortest_side = min(width, height)
+
+        min_longest = product_rules["minimum_longest_side"]
+        min_shortest = product_rules["minimum_shortest_side"]
+
+        resolution_pass = (
+            longest_side >= min_longest and
+            shortest_side >= min_shortest
+        )
+
+        if resolution_pass:
+
+            st.success(
+                f"✓ Resolution: {width} × {height} px — PASS"
+            )
+
+        else:
+
+            st.error(
+                f"✕ Resolution: {width} × {height} px — "
+                f"Required longest side ≥ {min_longest}px "
+                f"and shortest side ≥ {min_shortest}px"
+            )
+
+
+    elif "current_minimum_width" in product_rules:
+
+        current_min_width = product_rules["current_minimum_width"]
+        current_min_height = product_rules["current_minimum_height"]
+
+        resolution_pass = (
+            width >= current_min_width and
+            height >= current_min_height
+        )
+
+        if resolution_pass:
+
+            st.success(
+                f"✓ Resolution: {width} × {height} px — PASS"
+            )
+
+        else:
+
+            st.warning(
+                f"⚠ Resolution: {width} × {height} px — "
+                f"Below current minimum reference."
+            )
+
+
+    # --------------------------------------------------------
+    # FILE SIZE CHECK
+    # --------------------------------------------------------
+
+    if "maximum_file_size_mb" in product_rules:
+
+        max_file_size = product_rules["maximum_file_size_mb"]
+
+        if file_size_mb <= max_file_size:
+
+            st.success(
+                f"✓ File size: {file_size_mb:.2f} MB — PASS"
+            )
+
+        else:
+
+            st.error(
+                f"✕ File size: {file_size_mb:.2f} MB — "
+                f"Maximum: {max_file_size} MB"
+            )
+
+
+    # --------------------------------------------------------
+    # FORMAT CHECK
+    # --------------------------------------------------------
+
+    allowed_formats = product_rules.get(
+        "allowed_formats",
+        []
+    )
+
+    if image_format in allowed_formats:
+
+        st.success(
+            f"✓ Format: {image_format} — PASS"
+        )
+
+    else:
+
+        st.error(
+            f"✕ Format: {image_format} — "
+            f"Allowed: {', '.join(allowed_formats)}"
+        )
+
+
+    # --------------------------------------------------------
+    # PRODUCT COVERAGE STANDARD
+    # --------------------------------------------------------
+
+    if "recommended_product_coverage_min" in product_rules:
+
+        min_coverage = product_rules[
+            "recommended_product_coverage_min"
+        ]
+
+        max_coverage = product_rules[
+            "recommended_product_coverage_max"
+        ]
+
+        st.info(
+            f"ℹ Product coverage standard: "
+            f"{min_coverage}% – {max_coverage}%."
+        )
+
+        st.warning(
+            "⚠ Automatic product-coverage measurement will be "
+            "added in the visual AI analysis stage."
+        )
+
+
+    elif "minimum_product_coverage" in product_rules:
+
+        min_coverage = product_rules[
+            "minimum_product_coverage"
+        ]
+
+        st.info(
+            f"ℹ Amazon product coverage requirement: "
+            f"minimum {min_coverage}%."
+        )
+
+        st.warning(
+            "⚠ Automatic product-coverage measurement will be "
+            "added in the visual AI analysis stage."
+        )
+
+
+    # ========================================================
+    # ANALYSIS FOCUS
+    # ========================================================
+
+    st.divider()
 
     st.subheader("🔎 Analysis Focus")
 
@@ -248,14 +542,16 @@ if uploaded_file:
             """
             **Product Image Analysis**
 
-            The application will evaluate:
+            The application is evaluating:
+
             - Image dimensions
-            - Product visibility
-            - Product positioning
-            - Background
+            - File size
+            - File format
             - Product coverage
+            - Product visibility
+            - Background
+            - Product positioning
             - Image quality
-            - Cropping
             """
         )
 
@@ -266,7 +562,8 @@ if uploaded_file:
             """
             **Product Page Analysis**
 
-            The application will evaluate:
+            The visual AI stage will evaluate:
+
             - Product presentation
             - Product title
             - Price visibility
@@ -285,7 +582,8 @@ if uploaded_file:
             """
             **Website Screenshot Analysis**
 
-            The application will evaluate:
+            The visual AI stage will evaluate:
+
             - Navigation
             - Layout
             - Visual hierarchy
@@ -303,7 +601,8 @@ if uploaded_file:
             """
             **Marketing Banner Analysis**
 
-            The application will evaluate:
+            The visual AI stage will evaluate:
+
             - Visual hierarchy
             - Headline visibility
             - CTA visibility
@@ -321,7 +620,8 @@ if uploaded_file:
             """
             **Social Media Creative Analysis**
 
-            The application will evaluate:
+            The visual AI stage will evaluate:
+
             - Composition
             - Text readability
             - Branding
@@ -338,7 +638,8 @@ if uploaded_file:
             """
             **AI Generated Image Analysis**
 
-            The application will evaluate:
+            The visual AI stage will evaluate:
+
             - Image quality
             - Visual consistency
             - Composition
@@ -358,98 +659,6 @@ if uploaded_file:
             A custom set of standards will be applied.
             """
         )
-
-
-    # ========================================================
-    # INITIAL TECHNICAL CHECKS
-    # ========================================================
-
-    st.subheader("📝 Initial Technical Checks")
-
-
-    # --------------------------------------------------------
-    # Resolution check
-    # --------------------------------------------------------
-
-    if analysis_type == "Product Image":
-
-        if width >= 1000 and height >= 1000:
-
-            st.success(
-                "✓ Image meets the initial product-image resolution reference."
-            )
-
-        else:
-
-            st.warning(
-                "⚠ Image is below the initial product-image resolution reference."
-            )
-
-
-    else:
-
-        st.info(
-            "ℹ Resolution will be evaluated according to the selected "
-            "image type and market standard."
-        )
-
-
-    # --------------------------------------------------------
-    # Brightness check
-    # --------------------------------------------------------
-
-    if brightness < 50:
-
-        st.warning(
-            "⚠ Image appears relatively dark."
-        )
-
-    elif brightness > 200:
-
-        st.warning(
-            "⚠ Image appears very bright."
-        )
-
-    else:
-
-        st.success(
-            "✓ Brightness is within the initial reference range."
-        )
-
-
-    # --------------------------------------------------------
-    # Contrast check
-    # --------------------------------------------------------
-
-    if contrast < 25:
-
-        st.warning(
-            "⚠ Image has relatively low contrast."
-        )
-
-    else:
-
-        st.success(
-            "✓ Image has reasonable contrast."
-        )
-
-
-    # --------------------------------------------------------
-    # Sharpness check
-    # --------------------------------------------------------
-
-    if sharpness < 10:
-
-        st.warning(
-            "⚠ Image may require a sharpness review."
-        )
-
-    else:
-
-        st.success(
-            "✓ Image contains visible edge detail."
-        )
-
 
 else:
 
